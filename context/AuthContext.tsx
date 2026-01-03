@@ -21,12 +21,28 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-// Normalize API base so VITE_API_BASE_URL can be either
-//   - https://your-backend.com
-//   - https://your-backend.com/api
-// and we always end up calling `${API_BASE}/auth/...` correctly.
-const rawApiBase = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase.replace(/\/$/, '')}/api`;
+// Resolve API base for auth calls.
+// Priority:
+//   1. VITE_API_BASE_URL env (normalized to include `/api`)
+//   2. Hard-coded Render backend when running in production
+//   3. Localhost for dev
+const envApiBase = (import.meta as any).env.VITE_API_BASE_URL as string | undefined;
+
+function normalizeApiBase(base: string): string {
+  const trimmed = base.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.endsWith('/api')) return trimmed;
+  return `${trimmed.replace(/\/$/, '')}/api`;
+}
+
+let API_BASE: string;
+if (envApiBase && envApiBase.trim().length > 0) {
+  API_BASE = normalizeApiBase(envApiBase);
+} else if ((import.meta as any).env.PROD) {
+  API_BASE = 'https://kiranaconnect-backend.onrender.com/api';
+} else {
+  API_BASE = 'http://localhost:4000/api';
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
