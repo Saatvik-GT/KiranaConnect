@@ -21,7 +21,12 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const API_BASE = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+// Normalize API base so VITE_API_BASE_URL can be either
+//   - https://your-backend.com
+//   - https://your-backend.com/api
+// and we always end up calling `${API_BASE}/auth/...` correctly.
+const rawApiBase = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase.replace(/\/$/, '')}/api`;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
